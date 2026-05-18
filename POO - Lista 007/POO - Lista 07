@@ -30,20 +30,18 @@ class Compra:
     data: str
     valor_total: float
 
+
 class SistemaEcommerce:
 
     def __init__(self):
 
         self.usuarios = {}
         self.produtos = {}
-
         self.carrinhos = {}
-
         self.vendas = []
 
         self.criar_admin()
         self.criar_produtos_exemplo()
-
 
     def criar_admin(self):
 
@@ -218,7 +216,6 @@ class SistemaEcommerce:
         except:
             print("Erro.")
 
-
     def visualizar_carrinho(self, usuario):
 
         print("\n=== CARRINHO ===")
@@ -238,9 +235,7 @@ class SistemaEcommerce:
 
             total_geral += subtotal
 
-            print(
-                f"\nProduto: {item.produto.nome}"
-            )
+            print(f"\nProduto: {item.produto.nome}")
 
             print(
                 f"Preço Unitário: R$ {preco_unitario:.2f}"
@@ -256,6 +251,17 @@ class SistemaEcommerce:
 
         print(f"\nTOTAL CARRINHO: R$ {total_geral:.2f}")
 
+    def limpar_carrinho(self, usuario):
+
+        carrinho = self.carrinhos.get(usuario.login, [])
+
+        if not carrinho:
+            print("Carrinho já está vazio.")
+            return
+
+        self.carrinhos[usuario.login] = []
+
+        print("Carrinho limpo com sucesso.")
 
     def comprar_carrinho(self, usuario):
 
@@ -285,7 +291,6 @@ class SistemaEcommerce:
         self.carrinhos[usuario.login] = []
 
         print(f"Compra realizada. Total: R$ {total:.2f}")
-
 
     def listar_minhas_compras(self, usuario):
 
@@ -354,6 +359,7 @@ class SistemaEcommerce:
 3 - Visualizar carrinho
 4 - Comprar carrinho
 5 - Listar minhas compras
+6 - Limpar carrinho
 0 - Sair
 """)
 
@@ -373,6 +379,9 @@ class SistemaEcommerce:
 
             elif opcao == "5":
                 self.listar_minhas_compras(usuario)
+
+            elif opcao == "6":
+                self.limpar_carrinho(usuario)
 
             elif opcao == "0":
                 self.sair_sistema()
@@ -446,6 +455,7 @@ SISTEMA DE E-COMMERCE
 
             else:
                 print("Opção inválida.")
+
 
 sistema = SistemaEcommerce()
 sistema.iniciar()
