@@ -1,209 +1,265 @@
 import streamlit as st
 import datetime
 
-class DAO:
-    def __init__(self, session_key, dados_iniciais=None):
-        self.session_key = session_key
-        if self.session_key not in st.session_state:
-            st.session_state[self.session_key] = dados_iniciais if dados_iniciais else []
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Sistema de E-Commerce", page_icon="🛍️", layout="wide")
 
-    def listar_todos(self):
-        return st.session_state[self.session_key]
+# =================================================================
+# HERANÇA E EXCEÇÕES
+# =================================================================
+class EcommerceException(Exception): 
+    """Exceção base para o sistema"""
+    pass
 
-    def salvar(self, objeto):
-        st.session_state[self.session_key].append(objeto)
+class EmailDuplicadoError(EcommerceException):
+    def __init__(self, email):
+        super().__init__(f"O e-mail '{email}' já está cadastrado no sistema.")
 
+class ProdutoSemCategoriaError(EcommerceException):
+    def __init__(self, nome_produto):
+        super().__init__(f"Não é possível cadastrar '{nome_produto}' sem uma categoria definida.")
 
-class ProdutoDAO(DAO):
+class ProdutoVendidoError(EcommerceException):
+    def __init__(self, nome_produto):
+        super().__init__(f"Proibido excluir! O produto '{nome_produto}' já possui vendas registradas.")
+
+class PromocaoInvalidaError(EcommerceException):
     def __init__(self):
-        produtos_padrao = [
-            {"id": 1, "nome": "Notebook Gamer", "preco": 5000.00, "categoria": "Eletrônicos", "estoque": 3, "imagem": None},
-            {"id": 2, "nome": "Teclado Mecânico", "preco": 250.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
-            {"id": 3, "nome": "Mouse Sem Fio", "preco": 80.00, "categoria": "Periféricos", "estoque": 5, "imagem": None},
-            {"id": 4, "nome": "MousePad", "preco": 150.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
-            {"id": 5, "nome": "Fone De Ouvido Intra Auricular", "preco": 80.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
-            {"id": 6, "nome": "Monitor", "preco": 900.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
-            {"id": 7, "nome": "Tablet", "preco": 1200.00, "categoria": "Eletrônicos", "estoque": 10, "imagem": None},
-            {"id": 8, "nome": "Controle Multi-Plataforma", "preco": 160.00, "categoria": "Periféricos", "estoque": 10, "imagem": None}
-        ]
-        super().__init__("produtos", produtos_padrao)
+        super().__init__("O preço promocional deve ser menor que o preço original do produto.")
 
-    def buscar_por_id(self, id_prod):
-        for prod in self.listar_todos():
-            if prod["id"] == id_prod:
-                return prod
-        return None
+# =================================================================
+# SESSION STATE
+# =================================================================
+if "categorias" not in st.session_state:
+    st.session_state.categorias = ["Eletrônicos", "Periféricos", "Vestuário"]
 
+if "usuarios" not in st.session_state:
+    st.session_state.usuarios = [
+        {"email": "admin@email.com", "senha": "123", "perfil": "Admin", "nome": "Administrador"},
+        {"email": "joao@email.com", "senha": "123", "perfil": "Cliente", "nome": "João Cliente"},
+        {"email": "carlos@email.com", "senha": "123", "perfil": "Entregador", "nome": "Carlos Entregador"},
+    ]
 
-class VendaDAO(DAO):
-    def __init__(self):
-        vendas_padrao = [
-            {"id_venda": 101, "data": datetime.date(2026, 6, 10), "itens": "1x Notebook Gamer", "total": 405.00, "entregador": "Flavin MotoBoy", "status": "Em rota"}
-        ]
-        super().__init__("vendas_admin", vendas_padrao)
+if "produtos" not in st.session_state:
+    st.session_state.produtos = [
+        {"id": 1, "nome": "Notebook Gamer", "preco": 5000.00, "categoria": "Eletrônicos", "estoque": 3, "em_promocao": False, "preco_promocional": 0.0},
+        {"id": 2, "nome": "Teclado Mecânico", "preco": 250.00, "categoria": "Periféricos", "estoque": 10, "em_promocao": False, "preco_promocional": 0.0},
+    ]
 
+if "vendas" not in st.session_state:
+    st.session_state.vendas = []
 
-class EntregadorDAO(DAO):
-    def __init__(self):
-        entregadores_padrao = ["Flavin MotoBoy", "Ana Entregas"]
-        super().__init__("entregadores", entregadores_padrao)
-
-produto_dao = ProdutoDAO()
-venda_dao = VendaDAO()
-entregador_dao = EntregadorDAO()
-
-st.set_page_config(page_title="E-Commerce DAO", page_icon="🛒", layout="wide")
-
-if "promocoes" not in st.session_state:
-    st.session_state.promocoes = {
-        "Eletrônicos": {"desconto_pct": 10.0, "inicio": datetime.date(2026, 6, 1), "fim": datetime.date(2026, 6, 30)},
-        "Periféricos": {"desconto_pct": 0.0, "inicio": datetime.date(2026, 6, 1), "fim": datetime.date(2026, 6, 30)}
-    }
+if "usuario_atual" not in st.session_state:
+    st.session_state.usuario_atual = None
 
 if "carrinho" not in st.session_state:
     st.session_state.carrinho = []
 
-def obter_preco_atual(produto):
-    cat = produto["categoria"]
-    hoje = datetime.date.today()
-    if cat in st.session_state.promocoes:
-        promo = st.session_state.promocoes[cat]
-        if promo["inicio"] <= hoje <= promo["fim"] and promo["desconto_pct"] > 0:
-            desconto = produto["preco"] * (promo["desconto_pct"] / 100)
-            return produto["preco"] - desconto, True, promo["desconto_pct"]
-    return produto["preco"], False, 0.0
 
-st.sidebar.title("E-Commerce v3.0 (DAO)")
-perfil = st.sidebar.radio("Selecione seu perfil:", ["Cliente", "Administrador (Admin)", "Entregador"])
+# =================================================================
+# (RAISE)
+# =================================================================
+def cadastrar_cliente(nome, email, senha):
+    for u in st.session_state.usuarios:
+        if u["email"] == email:
+            raise EmailDuplicadoError(email)
+    st.session_state.usuarios.append({"email": email, "senha": senha, "perfil": "Cliente", "nome": nome})
 
-if perfil == "Cliente":
-    st.header("🛍️ Área do Cliente")
-    aba_loja, aba_carrinho, aba_entregas = st.tabs(["Produtos", "Meu Carrinho", "Acompanhar Entrega"])
+def cadastrar_produto(nome, preco, categoria):
+    if not categoria or categoria == "Selecione...":
+        raise ProdutoSemCategoriaError(nome) 
     
-    with aba_loja:
-        st.subheader("Vitrine Virtual")
-        for prod in produto_dao.listar_todos():
-            preco_final, em_promo, pct = obter_preco_atual(prod)
-            col_img, col_detalhes, col_preco, col_acao = st.columns(4)
+    novo_id = max([p["id"] for p in st.session_state.produtos]) + 1 if st.session_state.produtos else 1
+    st.session_state.produtos.append({
+        "id": novo_id, "nome": nome, "preco": preco, "categoria": categoria, "estoque": 10, "em_promocao": False, "preco_promocional": 0.0
+    })
+
+def cadastrar_promocao(produto_id, novo_preco):
+    for p in st.session_state.produtos:
+        if p["id"] == produto_id:
+            if novo_preco >= p["preco"]:
+                raise PromocaoInvalidaError()
+            p["em_promocao"] = True
+            p["preco_promocional"] = novo_preco
+
+def excluir_produto(produto_id, nome_produto):
+    for venda in st.session_state.vendas:
+        for item in venda["itens"]:
+            if item["id"] == produto_id:
+                raise ProdutoVendidoError(nome_produto)
+    st.session_state.produtos = [p for p in st.session_state.produtos if p["id"] != produto_id]
+
+
+# =================================================================
+# INTERFACE DO USUÁRIO (STREAMLIT)
+# =================================================================
+
+# Barra Superior / Logout
+if st.session_state.usuario_atual:
+    st.sidebar.write(f"Logado como: **{st.session_state.usuario_atual['nome']}** ({st.session_state.usuario_atual['perfil']})")
+    if st.sidebar.button("Sair do Sistema", type="secondary"):
+        st.session_state.usuario_atual = None
+        st.session_state.carrinho = []
+        st.rerun()
+
+# -----------------------------------------------------------------
+# VISITANTE / LOGIN 
+# -----------------------------------------------------------------
+if st.session_state.usuario_atual is None:
+    st.title("🏪 Sistema de E-Commerce")
+    
+    # Aba de Requisitos Removida daqui
+    aba_login, aba_cadastro = st.tabs(["🔐 Entrar", "📝 Abrir Conta"])
+    
+    with aba_login:
+        st.subheader("Login")
+        login_email = st.text_input("E-mail", key="login_email")
+        login_senha = st.text_input("Senha", type="password", key="login_senha")
+        if st.button("Entrar", type="primary"):
+            usuario_encontrado = next((u for u in st.session_state.usuarios if u["email"] == login_email and u["senha"] == login_senha), None)
+            if usuario_encontrado:
+                st.session_state.usuario_atual = usuario_encontrado
+                st.rerun()
+            else:
+                st.error("Usuário ou senha incorretos.")
+                
+    with aba_cadastro:
+        st.subheader("Novo Cliente")
+        cad_nome = st.text_input("Nome Completo")
+        cad_email = st.text_input("E-mail para login")
+        cad_senha = st.text_input("Senha", type="password")
+        if st.button("Criar Conta"):
+            try: 
+                cadastrar_cliente(cad_nome, cad_email, cad_senha)
+                st.success("Conta criada! Vá para a aba Entrar.")
+            except EmailDuplicadoError as e:
+                st.error(f"Erro: {e}")
+
+# -----------------------------------------------------------------
+# INTERFACE DO CLIENTE
+# -----------------------------------------------------------------
+elif st.session_state.usuario_atual["perfil"] == "Cliente":
+    st.title("🛍️ Área do Cliente")
+    tab_listar, tab_carrinho, tab_historico = st.tabs(["🔍 Produtos", "🛒 Carrinho", "📋 Minhas Compras / Entregas"])
+    
+    with tab_listar:
+        for prod in st.session_state.produtos:
+            col1, col2, col3 = st.columns([3, 1, 1])
+            col1.write(f"**{prod['nome']}**")
             
-            with col_img:
-                if prod["imagem"] is not None:
-                    st.image(prod["imagem"], width=120)
-                else:
-                    st.write("🖼️ (Sem Imagem)")
-            
-            with col_detalhes:
-                st.write(f"**{prod['nome']}**")
-                st.caption(f"Categoria: {prod['categoria']} | Estoque: {prod['estoque']}")
-            
-            with col_preco:
-                if em_promo:
-                    st.markdown(f"~~R$ {prod['preco']:.2f}~~")
-                    st.markdown(f"**🔥 R$ {preco_final:.2f}** ({int(pct)}% OFF)")
-                else:
-                    st.write(f"R$ {prod['preco']:.2f}")
+            preco_exibicao = prod["preco"]
+            if prod.get("em_promocao"):
+                col1.error("🔥 PROMOÇÃO!")
+                preco_exibicao = prod["preco_promocional"]
+                col2.write(f"~~R$ {prod['preco']:.2f}~~ \n **R$ {preco_exibicao:.2f}**")
+            else:
+                col2.write(f"R$ {prod['preco']:.2f}")
+                
+            if col3.button("Adicionar", key=f"add_{prod['id']}"):
+                item_carrinho = prod.copy()
+                item_carrinho["preco_final"] = preco_exibicao
+                st.session_state.carrinho.append(item_carrinho)
+                st.toast("Adicionado ao carrinho!")
                     
-            with col_acao:
-                if prod['estoque'] > 0:
-                    if st.button("Adicionar", key=f"add_{prod['id']}"):
-                        item_carrinho = prod.copy()
-                        item_carrinho["preco_pago"] = preco_final
-                        st.session_state.carrinho.append(item_carrinho)
-                        st.success("Adicionado!")
-                        st.rerun()
-                else:
-                    st.button("Esgotado", key=f"add_{prod['id']}", disabled=True)
+    with tab_carrinho:
+        total_carrinho = sum(item["preco_final"] for item in st.session_state.carrinho)
+        for idx, item in enumerate(st.session_state.carrinho):
+            st.write(f"- {item['nome']} (R$ {item['preco_final']:.2f})")
+        
+        st.write(f"### Total: R$ {total_carrinho:.2f}")
+        if st.session_state.carrinho and st.button("Comprar Carrinho", type="primary"):
+            nova_venda = {
+                "id_venda": len(st.session_state.vendas) + 101,
+                "data": datetime.date.today(),
+                "cliente": st.session_state.usuario_atual["email"],
+                "itens": st.session_state.carrinho,
+                "total": total_carrinho,
+                "status": "Aguardando Entregador",
+                "entregador_email": None
+            }
+            st.session_state.vendas.append(nova_venda)
+            st.session_state.carrinho = []
+            st.success("Compra efetuada!")
+            st.rerun()
+                
+    with tab_historico:
+        minhas_compras = [v for v in st.session_state.vendas if v["cliente"] == st.session_state.usuario_atual["email"]]
+        for compra in reversed(minhas_compras):
+            st.markdown(f"**Pedido #{compra['id_venda']}** | Total: R$ {compra['total']:.2f}")
+            if compra['status'] == 'Entregue':
+                st.success(f"Status da Entrega: {compra['status']} ✅")
+            elif compra['status'] == 'Em Rota':
+                st.warning(f"Status da Entrega: {compra['status']} 🚚")
+            else:
+                st.info(f"Status da Entrega: {compra['status']} ⏳")
             st.divider()
 
-    with aba_carrinho:
-        st.subheader("Carrinho")
-        if not st.session_state.carrinho:
-            st.info("Vazio")
+# -----------------------------------------------------------------
+# INTERFACE DO ADMIN
+# -----------------------------------------------------------------
+elif st.session_state.usuario_atual["perfil"] == "Admin":
+    st.title("⚙️ Painel Admin")
+    tab_prod, tab_promo, tab_entrega = st.tabs(["📦 Cadastrar Produto", "🔥 Cadastrar Promoção", "🚚 Definir Entregador"])
+
+    with tab_prod:
+        p_nome = st.text_input("Nome")
+        p_preco = st.number_input("Preço", min_value=0.0)
+        p_cat = st.selectbox("Categoria", ["Selecione..."] + st.session_state.categorias)
+        if st.button("Cadastrar Produto"):
+            try:
+                cadastrar_produto(p_nome, p_preco, p_cat)
+                st.success("Produto cadastrado!")
+            except ProdutoSemCategoriaError as e:
+                st.error(e)
+
+    with tab_promo:
+        st.write("Selecione um produto para colocar em promoção:")
+        opcoes_prod = {p["id"]: p["nome"] for p in st.session_state.produtos}
+        prod_selecionado = st.selectbox("Produto", options=opcoes_prod.keys(), format_func=lambda x: opcoes_prod[x])
+        novo_preco = st.number_input("Preço Promocional", min_value=0.0)
+        if st.button("Salvar Promoção"):
+            try:
+                cadastrar_promocao(prod_selecionado, novo_preco)
+                st.success("Promoção ativada com sucesso!")
+            except PromocaoInvalidaError as e:
+                st.error(e)
+
+    with tab_entrega:
+        vendas_pendentes = [v for v in st.session_state.vendas if v["status"] == "Aguardando Entregador"]
+        entregadores = [u for u in st.session_state.usuarios if u["perfil"] == "Entregador"]
+        
+        if not vendas_pendentes:
+            st.success("Nenhuma venda aguardando entregador.")
         else:
-            total = 0.0
-            for idx, item in enumerate(st.session_state.carrinho):
-                st.write(f"{item['nome']} - R$ {item['preco_pago']:.2f}")
-                total += item['preco_pago']
+            venda_sel = st.selectbox("Selecione a Venda", [v["id_venda"] for v in vendas_pendentes])
+            entregador_sel = st.selectbox("Selecione o Entregador", [e["email"] for e in entregadores], format_func=lambda x: [e["nome"] for e in entregadores if e["email"] == x][0])
             
-            st.write(f"### Total: R$ {total:.2f}")
-            if st.button("Finalizar Pedido", type="primary"):
-                for item in st.session_state.carrinho:
-                    orig = produto_dao.buscar_por_id(item['id'])
-                    if orig:
-                        orig['estoque'] -= 1
-                
-                novo_p = {
-                    "id_venda": len(venda_dao.listar_todos()) + 101,
-                    "data": datetime.date.today(),
-                    "itens": ", ".join([i['nome'] for i in st.session_state.carrinho]),
-                    "total": total,
-                    "entregador": "Não Alocado",
-                    "status": "Processando"
-                }
-                venda_dao.salvar(novo_p)
-                st.session_state.carrinho = []
-                st.success("Pedido realizado com sucesso!")
-                st.rerun()
+            if st.button("Atribuir Entregador"):
+                for v in st.session_state.vendas:
+                    if v["id_venda"] == venda_sel:
+                        v["entregador_email"] = entregador_sel
+                        v["status"] = "Em Rota"
+                        st.success("Entregador designado!")
+                        st.rerun()
 
-    with aba_entregas:
-        st.subheader("Status das suas Entregas")
-        st.dataframe(venda_dao.listar_todos(), use_container_width=True)
-
-elif perfil == "Administrador (Admin)":
-    st.header("⚙️ Painel Administrativo")
-    aba_img, aba_promo, aba_alocacao = st.tabs(["1. Upload de Imagens", "2. Controlar Promoções", "3. Alocar Entregadores"])
+# -----------------------------------------------------------------
+# INTERFACE DO ENTREGADOR
+# -----------------------------------------------------------------
+elif st.session_state.usuario_atual["perfil"] == "Entregador":
+    st.title("🚚 Painel do Entregador")
+    st.subheader("Minhas Entregas")
     
-    with aba_img:
-        st.subheader("Gerenciar Imagens dos Produtos")
-        prod_selecionado = st.selectbox("Selecione o Produto:", [p["nome"] for p in produto_dao.listar_todos()])
-        arquivo_img = st.file_uploader("Escolha uma imagem (PNG/JPG):", type=["png", "jpg", "jpeg"])
-        if st.button("Salvar Imagem"):
-            if arquivo_img is not None:
-                p_obj = next(p for p in produto_dao.listar_todos() if p["nome"] == prod_selecionado)
-                p_obj["imagem"] = arquivo_img.read()
-                st.success(f"Imagem adicionada a {prod_selecionado}!")
-                st.rerun()
-
-    with aba_promo:
-        st.subheader("Definir Promoção por Categoria")
-        cat_sel = st.selectbox("Categoria:", list(st.session_state.promocoes.keys()))
-        desc = st.number_input("Desconto (%)", min_value=0.0, max_value=100.0, value=10.0)
-        dt_ini = st.date_input("Início da Promoção", datetime.date.today())
-        dt_fim = st.date_input("Fim da Promoção", datetime.date.today() + datetime.timedelta(days=7))
-        if st.button("Aplicar Promoção"):
-            st.session_state.promocoes[cat_sel] = {"desconto_pct": desc, "inicio": dt_ini, "fim": dt_fim}
-            st.success(f"Promoção aplicada à categoria {cat_sel}!")
-
-    with aba_alocacao:
-        st.subheader("Alocação de Pedidos para Entregadores")
-        pedidos_pendentes = [v for v in venda_dao.listar_todos() if v["entregador"] == "Não Alocado"]
-        if not pedidos_pendentes:
-            st.info("Nenhum pedido aguardando alocação.")
-        else:
-            venda_id = st.selectbox("Selecione o ID do Pedido:", [v["id_venda"] for v in pedidos_pendentes])
-            ent_sel = st.selectbox("Selecione o Entregador:", entregador_dao.listar_todos())
-            if st.button("Alocar Entregador"):
-                v_obj = next(v for v in venda_dao.listar_todos() if v["id_venda"] == venda_id)
-                v_obj["entregador"] = ent_sel
-                v_obj["status"] = "Pronto para Coleta"
-                st.success(f"Pedido #{venda_id} alocado para {ent_sel}!")
-                st.rerun()
-
-elif perfil == "Entregador":
-    st.header("🛵 Portal de Cadastro de Entregadores")
+    minhas_entregas = [v for v in st.session_state.vendas if v["entregador_email"] == st.session_state.usuario_atual["email"] and v["status"] == "Em Rota"]
     
-    novo_entregador = st.text_input("Nome do Novo Entregador:")
-    if st.button("Cadastrar-se no Sistema"):
-        if novo_entregador and novo_entregador not in entregador_dao.listar_todos():
-            entregador_dao.salvar(novo_entregador)
-            st.success("Cadastro realizado com sucesso!")
-            st.rerun()
-        else:
-            st.error("Nome inválido ou já existente.")
-            
-    st.divider()
-    st.subheader("Atualizar Status de Entrega")
-    meus_pedidos = [v for v in venda_dao.listar_todos() if v["entregador"] != "Não Alocado"]
-    if meus_pedidos:
-        p_id = st.selectbox("Atualizar Pedido ID:", [m["id_venda"] for m in meus_pedidos])
-        novo_status = st.selectbox("Novo Status:", ["Pronto para Coleta", "Em rota", "Entregue"])
+    if not minhas_entregas:
+        st.info("Nenhuma entrega pendente para você no momento.")
+    else:
+        for entrega in minhas_entregas:
+            st.markdown(f"### Pedido #{entrega['id_venda']}")
+            st.write(f"**Cliente:** {entrega['cliente']}")
+            if st.button("Marcar como Entregue", key=f"entregar_{entrega['id_venda']}", type="primary"):
+                for v in st.session_state.vendas:
+                    if v["id_venda"] == entrega["id_venda"]:
+                        v["status"] = "Entregue"
+                st.success("Entrega confirmada!")
+                st.rerun()
