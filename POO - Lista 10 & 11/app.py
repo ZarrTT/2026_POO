@@ -44,6 +44,7 @@ if "produtos" not in st.session_state:
     st.session_state.produtos = [
         {"id": 1, "nome": "Notebook Gamer", "preco": 5000.00, "categoria": "Eletrônicos", "estoque": 3, "em_promocao": False, "preco_promocional": 0.0},
         {"id": 2, "nome": "Teclado Mecânico", "preco": 250.00, "categoria": "Periféricos", "estoque": 10, "em_promocao": False, "preco_promocional": 0.0},
+        {"id": 3, "nome": "Mousepad", "preco": 130.00, "categoria": "Eletrônicos", "estoque": 3, "em_promocao": False, "preco_promocional": 0.0},
     ]
 
 if "vendas" not in st.session_state:
@@ -57,7 +58,7 @@ if "carrinho" not in st.session_state:
 
 
 # =================================================================
-# (RAISE)
+# RAISE
 # =================================================================
 def cadastrar_cliente(nome, email, senha):
     for u in st.session_state.usuarios:
