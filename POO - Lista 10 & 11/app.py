@@ -21,7 +21,7 @@ class ProdutoDAO(DAO):
             {"id": 2, "nome": "Teclado Mecânico", "preco": 250.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
             {"id": 3, "nome": "Mouse Sem Fio", "preco": 80.00, "categoria": "Periféricos", "estoque": 5, "imagem": None},
             {"id": 4, "nome": "MousePad", "preco": 150.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
-            {"id": 5, "nome": "Fone Bluetooth", "preco": 200.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
+            {"id": 5, "nome": "Fone De Ouvido Intra Auricular", "preco": 80.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
             {"id": 6, "nome": "Monitor", "preco": 900.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
             {"id": 7, "nome": "Tablet", "preco": 1200.00, "categoria": "Eletrônicos", "estoque": 10, "imagem": None},
             {"id": 8, "nome": "Controle Multi-Plataforma", "preco": 160.00, "categoria": "Periféricos", "estoque": 10, "imagem": None}
