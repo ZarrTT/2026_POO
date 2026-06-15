@@ -53,10 +53,6 @@ produto_dao = ProdutoDAO()
 venda_dao = VendaDAO()
 entregador_dao = EntregadorDAO()
 
-# =====================================================================
-# CONFIGURAÇÕES ADICIONAIS DO SISTEMA
-# =====================================================================
-
 st.set_page_config(page_title="E-Commerce DAO", page_icon="🛒", layout="wide")
 
 if "promocoes" not in st.session_state:
@@ -82,7 +78,6 @@ def obter_preco_atual(produto):
 st.sidebar.title("E-Commerce v3.0 (DAO)")
 perfil = st.sidebar.radio("Selecione seu perfil:", ["Cliente", "Administrador (Admin)", "Entregador"])
 
-# ==================== VISÃO DO CLIENTE ====================
 if perfil == "Cliente":
     st.header("🛍️ Área do Cliente")
     aba_loja, aba_carrinho, aba_entregas = st.tabs(["Produtos", "Meu Carrinho", "Acompanhar Entrega"])
@@ -156,7 +151,6 @@ if perfil == "Cliente":
         st.subheader("Status das suas Entregas")
         st.dataframe(venda_dao.listar_todos(), use_container_width=True)
 
-# ==================== VISÃO DO ADMIN ====================
 elif perfil == "Administrador (Admin)":
     st.header("⚙️ Painel Administrativo")
     aba_img, aba_promo, aba_alocacao = st.tabs(["1. Upload de Imagens", "2. Controlar Promoções", "3. Alocar Entregadores"])
@@ -197,7 +191,6 @@ elif perfil == "Administrador (Admin)":
                 st.success(f"Pedido #{venda_id} alocado para {ent_sel}!")
                 st.rerun()
 
-# ==================== VISÃO DO ENTREGADOR ====================
 elif perfil == "Entregador":
     st.header("🛵 Portal de Cadastro de Entregadores")
     
