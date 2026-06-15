@@ -17,9 +17,14 @@ class DAO:
 class ProdutoDAO(DAO):
     def __init__(self):
         produtos_padrao = [
-            {"id": 1, "nome": "Notebook Gamer", "preco": 450.00, "categoria": "Eletrônicos", "estoque": 5, "imagem": None},
-            {"id": 2, "nome": "Teclado Mecânico", "preco": 350.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
-            {"id": 3, "nome": "Mouse Sem Fio", "preco": 150.00, "categoria": "Periféricos", "estoque": 2, "imagem": None},
+            {"id": 1, "nome": "Notebook Gamer", "preco": 5000.00, "categoria": "Eletrônicos", "estoque": 3, "imagem": None},
+            {"id": 2, "nome": "Teclado Mecânico", "preco": 250.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
+            {"id": 3, "nome": "Mouse Sem Fio", "preco": 80.00, "categoria": "Periféricos", "estoque": 5, "imagem": None},
+            {"id": 4, "nome": "MousePad", "preco": 150.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
+            {"id": 5, "nome": "Fone Bluetooth", "preco": 200.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
+            {"id": 6, "nome": "Monitor", "preco": 900.00, "categoria": "Periféricos", "estoque": 10, "imagem": None},
+            {"id": 7, "nome": "Tablet", "preco": 1200.00, "categoria": "Eletrônicos", "estoque": 10, "imagem": None},
+            {"id": 8, "nome": "Controle Multi-Plataforma", "preco": 160.00, "categoria": "Periféricos", "estoque": 10, "imagem": None}
         ]
         super().__init__("produtos", produtos_padrao)
 
@@ -33,14 +38,14 @@ class ProdutoDAO(DAO):
 class VendaDAO(DAO):
     def __init__(self):
         vendas_padrao = [
-            {"id_venda": 101, "data": datetime.date(2026, 6, 10), "itens": "1x Notebook Gamer", "total": 405.00, "entregador": "Carlos MotoBoy", "status": "Em rota"}
+            {"id_venda": 101, "data": datetime.date(2026, 6, 10), "itens": "1x Notebook Gamer", "total": 405.00, "entregador": "Flavin MotoBoy", "status": "Em rota"}
         ]
         super().__init__("vendas_admin", vendas_padrao)
 
 
 class EntregadorDAO(DAO):
     def __init__(self):
-        entregadores_padrao = ["Carlos MotoBoy", "Ana Entregas"]
+        entregadores_padrao = ["Flavin MotoBoy", "Ana Entregas"]
         super().__init__("entregadores", entregadores_padrao)
 
 produto_dao = ProdutoDAO()
