@@ -2,7 +2,6 @@ import streamlit as st
 import datetime
 
 class DAO:
-    """Classe genérica (mãe) para persistência de dados em memória."""
     def __init__(self, session_key, dados_iniciais=None):
         self.session_key = session_key
         if self.session_key not in st.session_state:
@@ -16,7 +15,6 @@ class DAO:
 
 
 class ProdutoDAO(DAO):
-    """Classe filha que herda de DAO para persistir Produtos."""
     def __init__(self):
         produtos_padrao = [
             {"id": 1, "nome": "Notebook Gamer", "preco": 450.00, "categoria": "Eletrônicos", "estoque": 5, "imagem": None},
@@ -33,7 +31,6 @@ class ProdutoDAO(DAO):
 
 
 class VendaDAO(DAO):
-    """Classe filha que herda de DAO para persistir Vendas/Pedidos."""
     def __init__(self):
         vendas_padrao = [
             {"id_venda": 101, "data": datetime.date(2026, 6, 10), "itens": "1x Notebook Gamer", "total": 405.00, "entregador": "Carlos MotoBoy", "status": "Em rota"}
@@ -42,13 +39,10 @@ class VendaDAO(DAO):
 
 
 class EntregadorDAO(DAO):
-    """Classe filha que herda de DAO para persistir Entregadores."""
     def __init__(self):
         entregadores_padrao = ["Carlos MotoBoy", "Ana Entregas"]
         super().__init__("entregadores", entregadores_padrao)
 
-
-# Instanciação dos DAOs para uso global na aplicação
 produto_dao = ProdutoDAO()
 venda_dao = VendaDAO()
 entregador_dao = EntregadorDAO()
@@ -74,7 +68,6 @@ def obter_preco_atual(produto):
             return produto["preco"] - desconto, True, promo["desconto_pct"]
     return produto["preco"], False, 0.0
 
-# NAVEGAÇÃO PRINCIPAL
 st.sidebar.title("E-Commerce v3.0 (DAO)")
 perfil = st.sidebar.radio("Selecione seu perfil:", ["Cliente", "Administrador (Admin)", "Entregador"])
 
