@@ -1,12 +1,9 @@
 import streamlit as st
 import datetime
 
-# --- CONFIGURAÇÃO DA PÁGINA ---
 st.set_page_config(page_title="Sistema de E-Commerce", page_icon="🛍️", layout="wide")
 
-# =================================================================
 # HERANÇA E EXCEÇÕES
-# =================================================================
 class EcommerceException(Exception): 
     """Exceção base para o sistema"""
     pass
@@ -27,9 +24,7 @@ class PromocaoInvalidaError(EcommerceException):
     def __init__(self):
         super().__init__("O preço promocional deve ser menor que o preço original do produto.")
 
-# =================================================================
 # SESSION STATE
-# =================================================================
 if "categorias" not in st.session_state:
     st.session_state.categorias = ["Eletrônicos", "Periféricos", "MousePad"]
 
@@ -40,7 +35,6 @@ if "usuarios" not in st.session_state:
         {"email": "carlos@email.com", "senha": "123", "perfil": "Entregador", "nome": "Carlos Entregador"},
     ]
 
-# PRODUTOS ATUALIZADOS COM CAMPO DE IMAGEM
 if "produtos" not in st.session_state:
     st.session_state.produtos = [
         {
@@ -84,10 +78,7 @@ if "usuario_atual" not in st.session_state:
 if "carrinho" not in st.session_state:
     st.session_state.carrinho = []
 
-
-# =================================================================
-# FUNÇÕES DO SISTEMA (RAISE)
-# =================================================================
+# RAISE
 def cadastrar_cliente(nome, email, senha):
     for u in st.session_state.usuarios:
         if u["email"] == email:
@@ -131,7 +122,6 @@ def excluir_produto(produto_id, nome_produto):
 # INTERFACE DO USUÁRIO (STREAMLIT)
 # =================================================================
 
-# Barra Superior / Logout
 if st.session_state.usuario_atual:
     st.sidebar.write(f"Logado como: **{st.session_state.usuario_atual['nome']}** ({st.session_state.usuario_atual['perfil']})")
     if st.sidebar.button("Sair do Sistema", type="secondary"):
@@ -139,9 +129,7 @@ if st.session_state.usuario_atual:
         st.session_state.carrinho = []
         st.rerun()
 
-# -----------------------------------------------------------------
 # VISITANTE / LOGIN 
-# -----------------------------------------------------------------
 if st.session_state.usuario_atual is None:
     st.title("🏪 Sistema de E-Commerce")
     
@@ -171,9 +159,7 @@ if st.session_state.usuario_atual is None:
             except EmailDuplicadoError as e:
                 st.error(f"Erro: {e}")
 
-# -----------------------------------------------------------------
 # INTERFACE DO CLIENTE
-# -----------------------------------------------------------------
 elif st.session_state.usuario_atual["perfil"] == "Cliente":
     st.title("🛍️ Área do Cliente")
     tab_listar, tab_carrinho, tab_historico = st.tabs(["🔍 Produtos", "🛒 Carrinho", "📋 Minhas Compras / Entregas"])
@@ -238,9 +224,7 @@ elif st.session_state.usuario_atual["perfil"] == "Cliente":
                 st.info(f"Status da Entrega: {compra['status']} ⏳")
             st.divider()
 
-# -----------------------------------------------------------------
 # INTERFACE DO ADMIN
-# -----------------------------------------------------------------
 elif st.session_state.usuario_atual["perfil"] == "Admin":
     st.title("⚙️ Painel Admin")
     tab_prod, tab_promo, tab_entrega = st.tabs(["📦 Cadastrar Produto", "🔥 Cadastrar Promoção", "🚚 Definir Entregador"])
@@ -289,9 +273,7 @@ elif st.session_state.usuario_atual["perfil"] == "Admin":
                         st.success("Entregador designado!")
                         st.rerun()
 
-# -----------------------------------------------------------------
 # INTERFACE DO ENTREGADOR
-# -----------------------------------------------------------------
 elif st.session_state.usuario_atual["perfil"] == "Entregador":
     st.title("🚚 Painel do Entregador")
     st.subheader("Minhas Entregas")
