@@ -1,136 +1,17 @@
+# ui.py
 import streamlit as st
 import datetime
+from views import cadastrar_cliente, cadastrar_produto, cadastrar_promocao
+from models import EmailDuplicadoError, ProdutoSemCategoriaError, PromocaoInvalidaError
 
-st.set_page_config(page_title="Sistema de E-Commerce", page_icon="🛍️", layout="wide")
-
-# HERANÇA E EXCEÇÕES
-class EcommerceException(Exception): 
-    """Exceção base para o sistema"""
-    pass
-
-class EmailDuplicadoError(EcommerceException):
-    def __init__(self, email):
-        super().__init__(f"O e-mail '{email}' já está cadastrado no sistema.")
-
-class ProdutoSemCategoriaError(EcommerceException):
-    def __init__(self, nome_produto):
-        super().__init__(f"Não é possível cadastrar '{nome_produto}' sem uma categoria definida.")
-
-class ProdutoVendidoError(EcommerceException):
-    def __init__(self, nome_produto):
-        super().__init__(f"Proibido excluir! O produto '{nome_produto}' já possui vendas registradas.")
-
-class PromocaoInvalidaError(EcommerceException):
-    def __init__(self):
-        super().__init__("O preço promocional deve ser menor que o preço original do produto.")
-
-# SESSION STATE
-if "categorias" not in st.session_state:
-    st.session_state.categorias = ["Eletrônicos", "Periféricos", "MousePad"]
-
-if "usuarios" not in st.session_state:
-    st.session_state.usuarios = [
-        {"email": "admin@email.com", "senha": "123", "perfil": "Admin", "nome": "Administrador"},
-        {"email": "joao@email.com", "senha": "123", "perfil": "Cliente", "nome": "João Cliente"},
-        {"email": "carlos@email.com", "senha": "123", "perfil": "Entregador", "nome": "Carlos Entregador"},
-    ]
-
-if "produtos" not in st.session_state:
-    st.session_state.produtos = [
-        {
-            "id": 1, 
-            "nome": "Notebook Gamer", 
-            "preco": 5000.00, 
-            "categoria": "Eletrônicos", 
-            "estoque": 3, 
-            "em_promocao": False, 
-            "preco_promocional": 0.0,
-            "imagem": "https://asset.msi.com/resize/image/global/product/product_165087784033b7d73ab07e01bdae6c7fabdf1c9c42.png62405b38c58fe0f07fcef2367d8a9ba1/1024.png"
-        },
-        {
-            "id": 2, 
-            "nome": "Teclado Mecânico", 
-            "preco": 250.00, 
-            "categoria": "Periféricos", 
-            "estoque": 10, 
-            "em_promocao": False, 
-            "preco_promocional": 0.0,
-            "imagem": "https://fallen.cdn.magazord.com.br/img/2025/06/produto/3419/teclado-pantera-pro-tkl-3.png?null"
-        },
-        {
-            "id": 3, 
-            "nome": "Mousepad", 
-            "preco": 130.00, 
-            "categoria": "Periféricos", 
-            "estoque": 3, 
-            "em_promocao": False, 
-            "preco_promocional": 0.0,
-            "imagem": "https://fallen.cdn.magazord.com.br/img/2025/09/produto/4895/artwork-spirit-dragon-45x45.png?null"
-        },
-    ]
-
-if "vendas" not in st.session_state:
-    st.session_state.vendas = []
-
-if "usuario_atual" not in st.session_state:
-    st.session_state.usuario_atual = None
-
-if "carrinho" not in st.session_state:
-    st.session_state.carrinho = []
-
-# RAISE
-def cadastrar_cliente(nome, email, senha):
-    for u in st.session_state.usuarios:
-        if u["email"] == email:
-            raise EmailDuplicadoError(email)
-    st.session_state.usuarios.append({"email": email, "senha": senha, "perfil": "Cliente", "nome": nome})
-
-# FUNÇÃO ATUALIZADA PARA RECEBER IMAGEM
-def cadastrar_produto(nome, preco, category, imagem_url):
-    if not category or category == "Selecione...":
-        raise ProdutoSemCategoriaError(nome) 
-    
-    novo_id = max([p["id"] for p in st.session_state.produtos]) + 1 if st.session_state.produtos else 1
-    st.session_state.produtos.append({
-        "id": novo_id, 
-        "nome": nome, 
-        "preco": preco, 
-        "categoria": category, 
-        "estoque": 10, 
-        "em_promocao": False, 
-        "preco_promocional": 0.0,
-        "imagem": imagem_url  # Salvando a imagem no dicionário
-    })
-
-def cadastrar_promocao(produto_id, novo_preco):
-    for p in st.session_state.produtos:
-        if p["id"] == produto_id:
-            if novo_preco >= p["preco"]:
-                raise PromocaoInvalidaError()
-            p["em_promocao"] = True
-            p["preco_promocional"] = novo_preco
-
-def excluir_produto(produto_id, nome_produto):
-    for venda in st.session_state.vendas:
-        for item in venda["itens"]:
-            if item["id"] == produto_id:
-                raise ProdutoVendidoError(nome_produto)
-    st.session_state.produtos = [p for p in st.session_state.produtos if p["id"] != produto_id]
-
-
-# =================================================================
-# INTERFACE DO USUÁRIO (STREAMLIT)
-# =================================================================
-
-if st.session_state.usuario_atual:
+def render_sidebar():
     st.sidebar.write(f"Logado como: **{st.session_state.usuario_atual['nome']}** ({st.session_state.usuario_atual['perfil']})")
     if st.sidebar.button("Sair do Sistema", type="secondary"):
         st.session_state.usuario_atual = None
         st.session_state.carrinho = []
         st.rerun()
 
-# VISITANTE / LOGIN 
-if st.session_state.usuario_atual is None:
+def render_login():
     st.title("🏪 Sistema de E-Commerce")
     
     aba_login, aba_cadastro = st.tabs(["🔐 Entrar", "📝 Abrir Conta"])
@@ -159,17 +40,14 @@ if st.session_state.usuario_atual is None:
             except EmailDuplicadoError as e:
                 st.error(f"Erro: {e}")
 
-# INTERFACE DO CLIENTE
-elif st.session_state.usuario_atual["perfil"] == "Cliente":
+def render_cliente():
     st.title("🛍️ Área do Cliente")
     tab_listar, tab_carrinho, tab_historico = st.tabs(["🔍 Produtos", "🛒 Carrinho", "📋 Minhas Compras / Entregas"])
     
     with tab_listar:
         for prod in st.session_state.produtos:
-            # Layout reajustado para acomodar a coluna da imagem
             col_img, col1, col2, col3 = st.columns([1.2, 2, 1, 1])
             
-            # Exibição da Imagem
             url_imagem = prod.get("imagem") if prod.get("imagem") else "https://placehold.co/300x300?text=Sem+Foto"
             col_img.image(url_imagem, use_container_width=True)
             
@@ -224,8 +102,7 @@ elif st.session_state.usuario_atual["perfil"] == "Cliente":
                 st.info(f"Status da Entrega: {compra['status']} ⏳")
             st.divider()
 
-# INTERFACE DO ADMIN
-elif st.session_state.usuario_atual["perfil"] == "Admin":
+def render_admin():
     st.title("⚙️ Painel Admin")
     tab_prod, tab_promo, tab_entrega = st.tabs(["📦 Cadastrar Produto", "🔥 Cadastrar Promoção", "🚚 Definir Entregador"])
 
@@ -233,7 +110,7 @@ elif st.session_state.usuario_atual["perfil"] == "Admin":
         p_nome = st.text_input("Nome do Produto")
         p_preco = st.number_input("Preço Original", min_value=0.0, step=10.0)
         p_cat = st.selectbox("Categoria", ["Selecione..."] + st.session_state.categorias)
-        p_img = st.text_input("URL da Imagem (Ex: link da internet)", placeholder="https://exemplo.com/imagem.jpg")
+        p_img = st.text_input("URL da Imagem", placeholder="https://exemplo.com/imagem.jpg")
         
         if st.button("Cadastrar Produto"):
             try:
@@ -273,8 +150,7 @@ elif st.session_state.usuario_atual["perfil"] == "Admin":
                         st.success("Entregador designado!")
                         st.rerun()
 
-# INTERFACE DO ENTREGADOR
-elif st.session_state.usuario_atual["perfil"] == "Entregador":
+def render_entregador():
     st.title("🚚 Painel do Entregador")
     st.subheader("Minhas Entregas")
     
