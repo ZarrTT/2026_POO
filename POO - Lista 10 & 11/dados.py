@@ -1,4 +1,3 @@
-# dados.py
 import streamlit as st
 
 def inicializar_dados():

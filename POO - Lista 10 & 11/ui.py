@@ -1,4 +1,3 @@
-# ui.py
 import streamlit as st
 import datetime
 from views import cadastrar_cliente, cadastrar_produto, cadastrar_promocao

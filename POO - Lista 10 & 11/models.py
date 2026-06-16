@@ -1,5 +1,3 @@
-# models.py
-
 class EcommerceException(Exception): 
     pass
 

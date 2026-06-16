@@ -1,4 +1,3 @@
-# views.py
 import streamlit as st
 from models import (EmailDuplicadoError, ProdutoSemCategoriaError, 
                     PromocaoInvalidaError, ProdutoVendidoError)
